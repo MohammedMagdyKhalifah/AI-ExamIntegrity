@@ -12,7 +12,7 @@ This project implements a real-time system to monitor and detect suspicious beha
 - Flags suspicious behavior when it exceeds the allowed threshold.
 
 ## Requirements
-- Python 3.7 or higher
+- Python 3.12 
 - OpenCV
 - MediaPipe
 - NumPy

@@ -1,27 +1,27 @@
 # AI-ExamIntegrity+
-AI ExamIntegrity+ ensures academic integrity in online exams using AI technologies like facial recognition, face tracking, and sound analysis. It provides real-time monitoring, detects suspicious behaviors, and records data only during violations, balancing security and privacy while adhering to ethical standards.
 
-# Suspicious Behavior Detection System
+**AI ExamIntegrity+** ensures academic integrity in online exams using AI technologies like facial recognition, face tracking, and sound analysis. It provides real-time monitoring, detects suspicious behaviors, and records data only during violations, balancing security and privacy while adhering to ethical standards.
 
-This project implements a real-time system to monitor and detect suspicious behavior during online activities such as exams. It uses MediaPipe for face and eye tracking and OpenCV for video processing.
+## 🛡️ Suspicious Behavior Detection System
+This project implements a real-time system to monitor and detect suspicious behavior during online activities such as exams. It uses **MediaPipe** for face and eye tracking and **OpenCV** for video processing.
 
-## Features
+## ✨ Features
 - Detects suspicious eye gaze direction (left, right, up).
 - Identifies head movements (left, right, up, down).
 - Displays behavior status on the screen in real-time.
 - Flags suspicious behavior when it exceeds the allowed threshold.
 
-## Requirements
-- Python 3.12 
-- OpenCV
-- MediaPipe
-- NumPy
+## 📋 Requirements
+- **Python 3.12**
+- **OpenCV**
+- **MediaPipe**
+- **NumPy**
 
 ---
 
-## Installation and Setup
+## 💾 Installation and Setup
 
-### For Windows Users
+### 🖥️ For Windows Users
 1. **Install Python**:
    - Download Python from the [official Python website](https://www.python.org/downloads/).
    - During installation, check the box to **Add Python to PATH**.
@@ -29,9 +29,7 @@ This project implements a real-time system to monitor and detect suspicious beha
 2. **Install Dependencies**:
    - Open a Command Prompt and run the following commands:
      ```bash
-     pip install opencv-python
-     pip install mediapipe
-     pip install numpy
+     pip install opencv-python mediapipe numpy
      ```
 
 3. **Clone the Repository**:
@@ -46,7 +44,7 @@ This project implements a real-time system to monitor and detect suspicious beha
 
 ---
 
-### For Mac Users
+### 🍏 For Mac Users
 1. **Install Python**:
    - macOS typically comes with Python pre-installed. To check, open a terminal and run:
      ```bash
@@ -59,14 +57,11 @@ This project implements a real-time system to monitor and detect suspicious beha
      ```bash
      /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
      ```
-   - Use Homebrew to manage dependencies if needed.
 
 3. **Install Dependencies**:
    - Open a terminal and run:
      ```bash
-     pip3 install opencv-python
-     pip3 install mediapipe
-     pip3 install numpy
+     pip3 install opencv-python mediapipe numpy
      ```
 
 4. **Allow Camera Access**:
@@ -81,9 +76,9 @@ This project implements a real-time system to monitor and detect suspicious beha
 
 ---
 
-## Troubleshooting
+## 🔧 Troubleshooting
 
-### Common Errors
+### ⚠️ Common Errors
 1. **`ModuleNotFoundError`**:
    - Ensure all required dependencies are installed. Run:
      ```bash
@@ -100,7 +95,7 @@ This project implements a real-time system to monitor and detect suspicious beha
 
 ---
 
-## How to Use
+## 🎯 How to Use
 1. Run the program.
 2. A window will open showing the webcam feed with facial landmarks.
 3. The system will monitor for suspicious behavior such as looking away or head movement.
@@ -108,11 +103,23 @@ This project implements a real-time system to monitor and detect suspicious beha
 
 ---
 
-## Notes
+## 🔍 Notes
 - The system assumes a normalized coordinate system for the face. Calibration may be required for different screen setups.
 - For best results, ensure adequate lighting and keep the face clearly visible to the camera.
 
 ---
 
-## License
-This project is licensed under the MIT License. Feel free to modify and distribute as needed.
+## 👨‍💻 Made By
+This project, **AI ExamIntegrity+**, was developed by our team as part of our graduation project at **Taibah University, College of Computer Science and Engineering, Department of Computer Science**.
+
+📌 **Supervised by:**  
+**Dr. Saeed Ibrahim Saeed Alqahtani**  
+
+### 🏆 Team Members:
+- **Mohammed Magdy Khalifah**  
+- **Omar Marwan Salamah**  
+- **Abdulrahman Sami Al-Madani**  
+- **Abdul Aziz Radhi Al-Mutairi**  
+- **Ayoub Abdullah Al Jabri**
+
+We are grateful for the guidance and support received throughout the development of this project. 🚀

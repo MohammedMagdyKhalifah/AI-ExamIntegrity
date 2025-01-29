@@ -112,14 +112,14 @@ This project implements a real-time system to monitor and detect suspicious beha
 ## 👨‍💻 Made By
 This project, **AI ExamIntegrity+**, was developed by our team as part of our graduation project at **Taibah University, College of Computer Science and Engineering, Department of Computer Science**.
 
-📌 **Supervised by:**  
-**Dr. Saeed Ibrahim Alqahtani**  
-
 ### 🏆 Team Members:
 - **Mohammed Magdy Khalifah**  
 - **Omar Marwan Salamah**  
 - **Abdulrahman Sami Al-Madani**  
 - **Abdul Aziz Radhi Al-Mutairi**  
 - **Ayoub Abdullah Al Jabri**
+
+📌 **Supervised by:**  
+**Dr. Saeed Ibrahim Alqahtani**  
 
 We are grateful for the guidance and support received throughout the development of this project. 🚀

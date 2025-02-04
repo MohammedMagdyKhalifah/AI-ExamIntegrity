@@ -1,27 +1,27 @@
-# AI-ExamIntegrity+
+# AI-ExamIntegrity+ 🚀
 
 **AI-ExamIntegrity+** is an advanced system designed to ensure academic integrity during online exams. It integrates two primary modules:
 
-1. **Speech Recognition Module**: Captures and transcribes live audio (supporting both English and Arabic) using Google's Speech Recognition API.
-2. **Suspicious Behavior Detection Module**: Utilizes real-time facial landmark detection via MediaPipe and OpenCV to monitor eye gaze and head movements, flagging any suspicious behavior.
+1. **Speech Recognition Module 🎤**: Captures and transcribes live audio (supporting both English and Arabic) using Google's Speech Recognition API.
+2. **Suspicious Behavior Detection Module 👀**: Utilizes real-time facial landmark detection via MediaPipe and OpenCV to monitor eye gaze and head movements, flagging any suspicious behavior.
 
 Both modules work together to provide a comprehensive monitoring solution for secure and fair online examinations.
 
 ---
 
-## Table of Contents
-- [Features](#features)
-- [Requirements](#requirements)
-- [Installation and Setup](#installation-and-setup)
-  - [Windows](#windows)
-  - [macOS](#macos)
-- [Usage](#usage)
-- [Troubleshooting](#troubleshooting)
-- [Credits](#credits)
+## Table of Contents 📑
+- [Features ✨](#features)
+- [Requirements 📋](#requirements)
+- [Installation and Setup 🛠️](#installation-and-setup)
+  - [Windows 💻](#windows)
+  - [macOS 🍏](#macos)
+- [Usage 🔧](#usage)
+- [Troubleshooting ⚠️](#troubleshooting)
+- [Credits 🙌](#credits)
 
 ---
 
-## Features
+## Features ✨
 
 - **Speech Recognition**
   - Real-time audio capture from the microphone.
@@ -36,7 +36,7 @@ Both modules work together to provide a comprehensive monitoring solution for se
 
 ---
 
-## Requirements
+## Requirements 📋
 
 - **Python**: Version 3.12 or later
 - **For Speech Recognition Module**:
@@ -49,15 +49,15 @@ Both modules work together to provide a comprehensive monitoring solution for se
   - [`numpy`](https://pypi.org/project/numpy/)
 
 - **Hardware & Other Requirements**:
-  - A working **webcam** (for video capture).
-  - A functioning **microphone** (for audio capture).
-  - **Internet connection** (required by the speech recognition API).
+  - A working **webcam** (for video capture) 📷.
+  - A functioning **microphone** (for audio capture) 🎙️.
+  - **Internet connection** (required by the speech recognition API) 🌐.
 
 ---
 
-## Installation and Setup
+## Installation and Setup 🛠️
 
-### Windows
+### Windows 💻
 
 1. **Install Python**:
    - Download the latest Python installer from the [official Python website](https://www.python.org/downloads/).
@@ -91,7 +91,7 @@ Both modules work together to provide a comprehensive monitoring solution for se
 
 ---
 
-### macOS
+### macOS 🍏
 
 1. **Install Python**:
    - macOS usually comes with Python pre-installed; however, it is recommended to install the latest version from the [official Python website](https://www.python.org/downloads/).
@@ -127,7 +127,7 @@ Both modules work together to provide a comprehensive monitoring solution for se
 5. **Clone or Download the Repository**:
    - **Clone via Git**:
      ```bash
-     git clone https://github.com/yourusername/AI-ExamIntegrity+.git
+     git clone https://github.com/MohammedMagdyKhalifah/AI-ExamIntegrity.git
      ```
    - Alternatively, download the ZIP archive from your repository and extract it.
 
@@ -140,15 +140,15 @@ Both modules work together to provide a comprehensive monitoring solution for se
 
 ---
 
-## Usage
+## Usage 🔧
 
-### Speech Recognition Module
+### Speech Recognition Module 🎤
 1. Run the speech recognition module (e.g., `speech_recognition_module.py`).
 2. The program will prompt: **"Say something in English or Arabic..."**
 3. Speak clearly into your microphone.
 4. The application will attempt to transcribe your speech in both English and Arabic. If it fails to understand, it will display a message asking you to try again.
 
-### Suspicious Behavior Detection Module
+### Suspicious Behavior Detection Module 👀
 1. Run the suspicious behavior detection module (e.g., `suspicious_behavior_detector.py`).
 2. A window will open displaying the webcam feed along with facial landmarks.
 3. The system will continuously analyze eye gaze and head movement:
@@ -158,7 +158,7 @@ Both modules work together to provide a comprehensive monitoring solution for se
 
 ---
 
-## Troubleshooting
+## Troubleshooting ⚠️
 
 ### Common Issues
 
@@ -183,7 +183,7 @@ Both modules work together to provide a comprehensive monitoring solution for se
 
 ---
 
-## Credits
+## Credits 🙌
 
 **AI-ExamIntegrity+** was developed to help maintain academic integrity during online examinations.
 

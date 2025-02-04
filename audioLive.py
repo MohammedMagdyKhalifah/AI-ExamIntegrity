@@ -23,4 +23,3 @@ with sr.Microphone() as src:
         
         except sr.RequestError:
             print("Could not request results from Google Speech Recognition. Check your internet connection.")
-            

@@ -76,7 +76,7 @@ Both modules work together to provide a comprehensive monitoring solution for se
 3. **Clone or Download the Repository**:
    - **Clone via Git**:
      ```bash
-     git clone https://github.com/yourusername/AI-ExamIntegrity+.git
+     git clone https://github.com/MohammedMagdyKhalifah/AI-ExamIntegrity.git
      ```
    - Or download the ZIP archive directly from your repository page and extract it.
 

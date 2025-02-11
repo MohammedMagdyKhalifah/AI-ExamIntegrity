@@ -1,7 +1,7 @@
 import speech_recognition as sr
 
 
-class SpeechRecognizerOOP:
+class SoundMonitor:
     def __init__(self, timeout=3, phrase_time_limit=10, pause_threshold=1.2, languages=None):
         """
         :param timeout: مدة الانتظار (بالثواني) قبل بدء الكلام
@@ -77,7 +77,6 @@ class SpeechRecognizerOOP:
         except KeyboardInterrupt:
             print("Exiting...")
 
-
 if __name__ == "__main__":
-    recognizer = SpeechRecognizerOOP(timeout=3, phrase_time_limit=10, pause_threshold=1.2)
+    recognizer = SoundMonitor(timeout=3, phrase_time_limit=10, pause_threshold=1.2)
     recognizer.run()

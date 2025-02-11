@@ -2,7 +2,7 @@ import cv2
 import mediapipe as mp
 import time
 
-class SuspiciousBehaviorDetector:
+class FaceMonitor:
     def __init__(self):
         self.mp_face_mesh = mp.solutions.face_mesh
         # تفعيل refine_landmarks لمزيد من الدقة
@@ -121,14 +121,14 @@ class SuspiciousBehaviorDetector:
 
 def main():
     cap = cv2.VideoCapture(0)
-    detector = SuspiciousBehaviorDetector()
+    face_monitor = FaceMonitor()
 
     while cap.isOpened():
         success, frame = cap.read()
         if not success:
             break
 
-        frame = detector.process_frame(frame)
+        frame = face_monitor.process_frame(frame)
         cv2.imshow('Suspicious Behavior Detection', frame)
 
         if cv2.waitKey(5) & 0xFF == 27:

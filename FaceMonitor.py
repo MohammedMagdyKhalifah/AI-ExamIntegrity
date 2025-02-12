@@ -14,9 +14,76 @@ class FaceMonitor:
 
         self.start_time = time.time()
         self.suspicious_flag = False
-        self.behavior_description = "Normal Behavior"
+        self.gazeStatus = "Normal Behavior"  # بدلًا من behavior_description
 
-    def detect_eye_gaze(self, landmarks):
+    def trackGaze(self, landmarks):
+        """
+        يجمع بين الكشف عن اتجاه النظر (العين) وحركة الرأس.
+        إذا كانت العين أو الرأس خارج النطاق المقبول، يعيد False.
+        بخلاف ذلك يعيد True.
+        """
+        eye_ok = self._detect_eye_gaze(landmarks)
+        head_ok = self._detect_head_movement(landmarks)
+        return eye_ok and head_ok
+
+    def detectViolation(self, image, landmarks):
+        """
+        يتحقق مما إذا كان هناك سلوك مشبوه بناءً على trackGaze().
+        إذا استمر السلوك لأكثر من suspicious_threshold، يتم استدعاء generateAlert().
+        """
+        is_gaze_ok = self.trackGaze(landmarks)
+        if not is_gaze_ok:
+            # إذا كانت هذه أول مرة نرصد سلوكًا مشبوهًا، نبدأ العداد
+            if not self.suspicious_flag:
+                self.start_time = time.time()
+                self.suspicious_flag = True
+            # إذا تجاوزنا مدة السماح، نعرض التنبيه
+            elif time.time() - self.start_time > self.suspicious_threshold:
+                self.generateAlert(image, f"Suspicious: {self.gazeStatus}")
+        else:
+            # إعادة الضبط إذا عاد السلوك للوضع الطبيعي
+            self.suspicious_flag = False
+
+        # في كل الأحوال نعرض الحالة الحالية (gazeStatus) على الشاشة
+        cv2.putText(
+            image, self.gazeStatus, (50, 100),
+            cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2
+        )
+        return image
+
+    def generateAlert(self, image, message):
+        """
+        يعرض رسالة تنبيهية على إطار الفيديو عند اكتشاف سلوك مشبوه.
+        """
+        cv2.putText(
+            image, message, (50, 50),
+            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2
+        )
+
+    def analyzeFace(self, frame):
+        """
+        الدالة الأساسية لمعالجة الإطار (الصورة) الملتقطة من الكاميرا.
+        تقوم باكتشاف الوجه ومعالمه، ثم تستدعي detectViolation للتحقق من أي مخالفة.
+        """
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = self.face_mesh.process(rgb_frame)
+
+        if results.multi_face_landmarks:
+            for face_landmarks in results.multi_face_landmarks:
+                # رسم المعالم على الوجه
+                self.mp_drawing.draw_landmarks(
+                    frame, face_landmarks,
+                    self.mp_face_mesh.FACEMESH_TESSELATION
+                )
+                # التحقق من وجود انتهاك
+                frame = self.detectViolation(frame, face_landmarks.landmark)
+
+        return frame
+
+    # ----------------------------------------------------------------------------
+    # الدوال المساعدة (خاصة) للكشف عن حركة العين والرأس
+    # ----------------------------------------------------------------------------
+    def _detect_eye_gaze(self, landmarks):
         """
         الكشف عن اتجاه النظر باستخدام معالم العين.
         تُحسب النقطة المتوسطة للعينين الخارجية (landmarks 33 و263)
@@ -32,28 +99,29 @@ class FaceMonitor:
         mid_point_x = (left_eye_outer.x + right_eye_outer.x) / 2
         deviation_from_center = abs(mid_point_x - 0.5)
 
+        # التحقق من الانحراف الأفقي
         if deviation_from_center > self.center_tolerance:
             if mid_point_x < 0.5:
-                self.behavior_description = "Brief: Looking Left"
+                self.gazeStatus = "Brief: Looking Left"
             else:
-                self.behavior_description = "Brief: Looking Right"
-            return False  # لا ينظر مباشرة إلى الشاشة
+                self.gazeStatus = "Brief: Looking Right"
+            return False
         else:
             # التحقق من الاتجاه العمودي باستخدام العين الداخلية
             eye_vertical_diff = (left_eye_inner.y + right_eye_inner.y) / 2
             center_y = 0.5
 
             if eye_vertical_diff < center_y - 0.15:
-                self.behavior_description = "Brief: Looking Up"
+                self.gazeStatus = "Brief: Looking Up"
                 return False
             elif eye_vertical_diff > center_y + 0.10:
-                self.behavior_description = "Fully Acceptable: Looking Down"
+                self.gazeStatus = "Fully Acceptable: Looking Down"
                 return True
             else:
-                self.behavior_description = "Normal Behavior"
+                self.gazeStatus = "Normal Behavior"
                 return True
 
-    def detect_head_movement(self, landmarks):
+    def _detect_head_movement(self, landmarks):
         """
         الكشف عن حركة الرأس باستخدام موقع طرف الأنف (landmark 1).
         إذا خرج موقع الأنف (أو تغير موضعه رأسيًا بشكل غير مقبول) عن النطاق المركزي،
@@ -67,57 +135,21 @@ class FaceMonitor:
         # التحقق من الانحراف الأفقي للأنف عن المركز
         if abs(nose_tip.x - 0.5) > self.center_tolerance:
             if nose_tip.x < 0.5:
-                self.behavior_description = "Brief: Head Rotated Left"
+                self.gazeStatus = "Brief: Head Rotated Left"
             else:
-                self.behavior_description = "Brief: Head Rotated Right"
+                self.gazeStatus = "Brief: Head Rotated Right"
             return False
 
         # التحقق من الانحراف العمودي للأنف:
         if nose_tip.y < 0.4:
-            self.behavior_description = "Brief: Head Moved Up"
+            self.gazeStatus = "Brief: Head Moved Up"
             return False
         elif nose_tip.y > 0.6:
-            self.behavior_description = "Fully Acceptable: Head Moved Down"
+            self.gazeStatus = "Fully Acceptable: Head Moved Down"
             return True
 
-        self.behavior_description = "Normal Behavior"
+        self.gazeStatus = "Normal Behavior"
         return True
-
-    def detect_suspicious_behavior(self, image, landmarks):
-        """
-        يجمع بين الكشف عن اتجاه النظر وحركة الرأس.
-        إذا كان أحدهما يشير إلى سلوك غير طبيعي (أي أن العين أو الأنف لا في الموضع المقبول)، يبدأ العداد.
-        إذا استمر السلوك لأكثر من الفترة المسموحة (suspicious_threshold)، يتم عرض الإنذار.
-        """
-        is_eye_on_screen = self.detect_eye_gaze(landmarks)
-        is_head_centered = self.detect_head_movement(landmarks)
-
-        if not is_eye_on_screen or not is_head_centered:
-            if not self.suspicious_flag:
-                self.start_time = time.time()
-                self.suspicious_flag = True
-            elif time.time() - self.start_time > self.suspicious_threshold:
-                cv2.putText(image, f"Suspicious: {self.behavior_description}", (50, 50),
-                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-        else:
-            self.suspicious_flag = False
-
-        cv2.putText(image, self.behavior_description, (50, 100),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-        return image
-
-    def process_frame(self, frame):
-        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = self.face_mesh.process(rgb_frame)
-
-        if results.multi_face_landmarks:
-            for face_landmarks in results.multi_face_landmarks:
-                self.mp_drawing.draw_landmarks(
-                    frame, face_landmarks,
-                    self.mp_face_mesh.FACEMESH_TESSELATION)
-                frame = self.detect_suspicious_behavior(frame, face_landmarks.landmark)
-
-        return frame
 
 def main():
     cap = cv2.VideoCapture(0)
@@ -128,7 +160,8 @@ def main():
         if not success:
             break
 
-        frame = face_monitor.process_frame(frame)
+        # استدعاء analyzeFace بدلاً من process_frame
+        frame = face_monitor.analyzeFace(frame)
         cv2.imshow('Suspicious Behavior Detection', frame)
 
         if cv2.waitKey(5) & 0xFF == 27:

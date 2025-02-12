@@ -8,6 +8,8 @@ class SoundMonitor:
         :param phrase_time_limit: أقصى مدة لتسجيل العبارة (بالثواني)
         :param pause_threshold: المدة الزمنية التي يعتبرها البرنامج نهاية العبارة بعد الصمت
         :param languages: معجم اللغات المطلوب التعرف عليها مع رموزها؛ الافتراضي: {"English": "en", "Arabic": "ar"}
+
+        phrase_time_limit=10 نكتب ليها تبرير
         """
         self.recognizer = sr.Recognizer()
         self.timeout = timeout

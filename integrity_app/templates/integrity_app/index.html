@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}AI Exam Integrity - Monitoring Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center mb-4">AI Exam Integrity Monitoring Dashboard</h1>
+
+    <div class="row">
+        <!-- Face Monitoring Panel -->
+        <div class="col-md-6">
+            <div class="card shadow p-3">
+                <h2>Face Monitor</h2>
+                <video id="video" width="100%" height="auto" autoplay muted class="border rounded"></video>
+                <canvas id="canvas" width="640" height="480" style="display: none;"></canvas>
+                <img id="processedImage" src="" alt="Processed Frame" class="img-fluid mt-2 rounded">
+                <div id="faceStatus" class="mt-2">Status: Normal Behavior</div>
+            </div>
+        </div>
+
+        <!-- Audio Monitoring Panel -->
+        <div class="col-md-6">
+            <div class="card shadow p-3">
+                <h2>Audio Monitor</h2>
+                <div id="audioTranscript" class="p-3 border rounded bg-light">Waiting for audio...</div>
+                <div id="audioAlert" class="mt-2 text-danger fw-bold"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Set up video and canvas elements
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const processedImage = document.getElementById('processedImage');
+    const faceStatusEl = document.getElementById('faceStatus');
+    const audioTranscriptEl = document.getElementById('audioTranscript');
+    const audioAlertEl = document.getElementById('audioAlert');
+    const context = canvas.getContext('2d');
+
+    // Request video and audio from the user's webcam
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        .then(stream => {
+            video.srcObject = stream;
+            video.play();
+
+            // Set up MediaRecorder for audio with MIME type options
+            const audioTracks = stream.getAudioTracks();
+            if (audioTracks.length > 0) {
+                const audioStream = new MediaStream(audioTracks);
+                let options = { mimeType: 'audio/webm' };
+                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                    console.warn(`${options.mimeType} is not supported, using default MIME type.`);
+                    options = {};
+                }
+
+                let mediaRecorder = new MediaRecorder(audioStream, options);
+
+                mediaRecorder.ondataavailable = function(event) {
+                    if (event.data && event.data.size > 0) {
+                        let reader = new FileReader();
+                        reader.onloadend = function() {
+                            let base64data = reader.result.split(',')[1];
+                            if (audioSocket.readyState === WebSocket.OPEN) {
+                                let msg = JSON.stringify({
+                                    audio_data: base64data,
+                                    sample_rate: 16000,
+                                    sample_width: 2
+                                });
+                                audioSocket.send(msg);
+                            }
+                        };
+                        reader.readAsDataURL(event.data);
+                    }
+                };
+                mediaRecorder.start(2000);
+            }
+        })
+        .catch(err => {
+            console.error('Error accessing media devices:', err);
+        });
+
+    // Capture frames and send to server for face analysis
+    setInterval(() => {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        let imageData = canvas.toDataURL('image/jpeg');
+
+        fetch('/process-frame/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'image=' + encodeURIComponent(imageData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.processed_image) {
+                processedImage.src = data.processed_image;
+            }
+            if (data.face_status) {
+                faceStatusEl.textContent = 'Status: ' + data.face_status;
+            }
+        })
+        .catch(error => console.error('Error processing frame:', error));
+    }, 500);
+
+    // Set up WebSocket for audio processing
+    const audioSocket = new WebSocket('ws://' + window.location.host + '/ws/process_audio/');
+
+    audioSocket.onmessage = function(event) {
+        let data = JSON.parse(event.data);
+        let texts = data.recognized_texts;
+        let violation = data.violation_found;
+
+        let transcript = '';
+        for (let lang in texts) {
+            transcript += lang + ': ' + texts[lang] + '\n';
+        }
+        audioTranscriptEl.textContent = transcript;
+
+        if (violation) {
+            audioAlertEl.textContent = '*** Suspicious behavior detected in audio! ***';
+            audioAlertEl.classList.add('alert');
+        } else {
+            audioAlertEl.textContent = '';
+            audioAlertEl.classList.remove('alert');
+        }
+    };
+
+    audioSocket.onerror = function(error) {
+        console.error('WebSocket error:', error);
+    };
+</script>
+{% endblock %}

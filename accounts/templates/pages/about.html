@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}About Us - AI Exam Integrity{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center mb-4">About AI Exam Integrity+</h1>
+
+    <div class="row align-items-center">
+        <div class="col-md-6">
+            <img src="{% static 'accounts/img.png' %}" class="img-fluid rounded" alt="AI Exam Integrity Illustration">
+        </div>
+
+        <div class="col-md-6">
+            <h2>Our Mission</h2>
+            <p class="text-muted">
+                AI Exam Integrity+ is dedicated to ensuring fairness and academic honesty in online exams. Our advanced AI-driven monitoring system provides real-time analysis of student behavior to prevent cheating while maintaining a seamless exam experience.
+            </p>
+            <h2>Key Features</h2>
+            <ul>
+                <li>AI-powered facial tracking and eye movement analysis</li>
+                <li>Real-time audio monitoring for unauthorized speech</li>
+                <li>Non-intrusive, privacy-focused proctoring solutions</li>
+            </ul>
+            <a href="#" class="btn btn-primary mt-3">Contact Us</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

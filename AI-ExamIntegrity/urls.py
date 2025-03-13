@@ -22,4 +22,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('integrity_app.urls')),  # Include our app's URLs
     path('accounts/', include('accounts.urls')),
+    path('proctor/', include('proctor.urls')),
 ]

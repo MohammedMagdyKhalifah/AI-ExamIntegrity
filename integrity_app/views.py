@@ -8,6 +8,8 @@ from django.shortcuts import render
 from io import BytesIO
 from PIL import Image
 import logging
+from accounts.decorators import student_required, proctor_required
+
 
 # Import our FaceMonitor and SoundMonitor classes
 from .face_monitor import FaceMonitor
@@ -18,11 +20,11 @@ logger = logging.getLogger(__name__)
 face_monitor = FaceMonitor()
 sound_monitor = SoundMonitor()
 
-@login_required
+@student_required
 def index(request):
-    return render(request, 'integrity_app/index.html')
+    return render(request, 'integrity_app/student_dashboard.html')
 
-@login_required
+@student_required
 @csrf_exempt
 def process_frame(request):
     if request.method == 'POST':
@@ -48,7 +50,7 @@ def process_frame(request):
                 return JsonResponse({'error': f'Error processing frame: {str(e)}'}, status=500)
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
-@login_required
+@student_required
 @csrf_exempt
 def process_audio(request):
     if request.method == 'POST':

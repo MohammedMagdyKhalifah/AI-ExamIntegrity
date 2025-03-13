@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Proctor Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Proctor Dashboard</h1>
+    <p>Welcome, {{ request.user.first_name }}!</p>
+
+    <!-- Example navigation items for proctor-specific functionalities -->
+    <div class="list-group">
+        <a href="#" class="list-group-item list-group-item-action">
+            Create New Exam
+        </a>
+        <a href="#" class="list-group-item list-group-item-action">
+            Invite Students (Example exam)
+        </a>
+        <a href="#" class="list-group-item list-group-item-action">
+            View Live Exam Monitoring
+        </a>
+        <a href="#" class="list-group-item list-group-item-action">
+            Review Paused Exams
+        </a>
+    </div>
+
+</div>
+{% endblock %}

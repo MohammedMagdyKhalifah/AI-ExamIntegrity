@@ -43,6 +43,15 @@
                 <input type="password" class="form-control" id="password" name="password" required>
             </div>
 
+            <!-- Optionally, add a dropdown to select user type (student/proctor) -->
+            <div class="mb-3">
+                <label for="user_type" class="form-label">I am a</label>
+                <select class="form-control" id="user_type" name="user_type">
+                    <option value="student" selected>Student</option>
+                    <option value="proctor">Proctor</option>
+                </select>
+            </div>
+
             <button type="submit" class="btn btn-primary w-100">Register</button>
         </form>
 

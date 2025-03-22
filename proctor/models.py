@@ -18,6 +18,9 @@ class Exam(models.Model):
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
 
+    # Duration of the exam; computed automatically if not provided.
+    duration = models.DurationField(blank=True, null=True, help_text="Duration of the exam ex: 2:30:00")
+
     # The proctor who created/oversees this exam
     proctor = models.ForeignKey(
         settings.AUTH_USER_MODEL,

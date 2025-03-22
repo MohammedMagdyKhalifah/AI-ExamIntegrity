@@ -45,7 +45,7 @@ class Alert(models.Model):
 
     # Link to the attempt that triggered the alert
     attempt = models.ForeignKey(
-        'attempt.Attempt',
+        'student.Attempt',
         on_delete=models.CASCADE,
         related_name='alerts'
     )

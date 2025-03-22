@@ -23,4 +23,7 @@ urlpatterns = [
     path('', include('integrity_app.urls')),  # Include our app's URLs
     path('accounts/', include('accounts.urls')),
     path('proctor/', include('proctor.urls')),
+    path('student/', include('student.urls')),
+    path('alert/', include('alert.urls')),
+
 ]

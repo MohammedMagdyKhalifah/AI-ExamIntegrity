@@ -21,9 +21,8 @@ INSTALLED_APPS = [
     'integrity_app',
     'accounts',
     'proctor',
-    'attempt',
+    'student',
     'alert',
-
 ]
 
 MIDDLEWARE = [

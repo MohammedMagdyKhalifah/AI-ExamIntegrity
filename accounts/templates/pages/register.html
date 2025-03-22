@@ -43,13 +43,19 @@
                 <input type="password" class="form-control" id="password" name="password" required>
             </div>
 
-            <!-- Optionally, add a dropdown to select user type (student/proctor) -->
+            <!-- Dropdown to select user type -->
             <div class="mb-3">
                 <label for="user_type" class="form-label">I am a</label>
                 <select class="form-control" id="user_type" name="user_type">
                     <option value="student" selected>Student</option>
                     <option value="proctor">Proctor</option>
                 </select>
+            </div>
+
+            <!-- Student ID field shown only when "Student" is selected -->
+            <div class="mb-3" id="student_id_field">
+                <label for="student_id" class="form-label">Student ID</label>
+                <input type="text" class="form-control" id="student_id" name="student_id" required>
             </div>
 
             <button type="submit" class="btn btn-primary w-100">Register</button>
@@ -60,4 +66,18 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Toggle the display of the student ID field based on user type selection
+    document.getElementById('user_type').addEventListener('change', function() {
+        var studentField = document.getElementById('student_id_field');
+        if (this.value === 'student') {
+            studentField.style.display = 'block';
+            studentField.querySelector('input').required = true;
+        } else {
+            studentField.style.display = 'none';
+            studentField.querySelector('input').required = false;
+        }
+    });
+</script>
 {% endblock %}

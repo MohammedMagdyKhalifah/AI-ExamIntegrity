@@ -21,6 +21,7 @@ def RegisterView(request):
     """
     Processes user registration.
     - Registers a new user (student or proctor) with a custom user type.
+    - For students, retrieves and validates a unique student_id before creating the StudentProfile.
     - Creates the corresponding StudentProfile or ProctorProfile.
     """
     if request.method == "POST":
@@ -52,9 +53,19 @@ def RegisterView(request):
             user_type=user_type
         )
 
-        # Create role-specific profile with default values
+        # Create role-specific profile with additional data for students
         if user_type == 'student':
-            StudentProfile.objects.create(user=user)
+            student_id = request.POST.get('student_id', '').strip()
+            if not student_id:
+                messages.error(request, "Student ID is required for student registration")
+                user.delete()  # Clean up the created user
+                return redirect('register')
+            # Check if the student_id already exists
+            if StudentProfile.objects.filter(student_id=student_id).exists():
+                messages.error(request, "Student ID already exists")
+                user.delete()  # Clean up the created user
+                return redirect('register')
+            StudentProfile.objects.create(user=user, student_id=student_id)
         elif user_type == 'proctor':
             ProctorProfile.objects.create(user=user)
 

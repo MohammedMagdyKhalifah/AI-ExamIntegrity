@@ -1,12 +1,18 @@
 {% extends "base.html" %}
 
 {% load static %}
-{# ^ Only needed if referencing static files like CSS or JS #}
 
 {% block title %}My Exams{% endblock %}
 
 {% block content %}
 <div class="container w-75">
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-info{% endif %} text-center" role="alert">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
  <!-- Page Title and "Add Exam" Button -->
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h3">My Exams</h1>
@@ -43,7 +49,7 @@
           </td>
           <td class="text-end">
             <!-- "Start Exam" button -->
-            <a href="#" class="btn btn-sm btn-primary">Start Exam</a>
+            <a href="{% url 'student_exam_detail' exam_id=exam.exam_id %}" class="btn btn-sm btn-primary">Start Exam</a>
           </td>
         </tr>
         {% endfor %}
@@ -83,7 +89,7 @@
           </td>
           <td class="text-end">
             <!-- "View details" button -->
-            <a href="#" class="btn btn-sm btn-success">View details</a>
+            <a href="{% url 'student_exam_detail' exam_id=exam.exam_id %}" class="btn btn-sm btn-success">View details</a>
           </td>
         </tr>
         {% endfor %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Start Exam{% endblock %}
+{% block content %}
+<div class="container my-4">
+  <h1>{{ exam.title }}</h1>
+  <p>{{ exam.description }}</p>
+  <p><strong>Start Time:</strong> {{ exam.start_time|date:"M d, Y h:i A" }}</p>
+  <p><strong>End Time:</strong> {{ exam.end_time|date:"M d, Y h:i A" }}</p>
+  {% if duration %}
+    <p><strong>Duration:</strong> {{ duration }}</p>
+  {% endif %}
+  <p><strong>Attempts Allowed:</strong> {{ allowed_attempts }}</p>
+  <p><strong>Attempts Taken:</strong> {{ attempt_count }}</p>
+  <hr>
+  <form method="POST">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary">Start Exam</button>
+  </form>
+</div>
+{% endblock %}

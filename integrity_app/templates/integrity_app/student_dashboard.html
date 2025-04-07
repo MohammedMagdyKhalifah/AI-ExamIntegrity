@@ -30,7 +30,7 @@
 </div>
 
 <script>
-    // Set up video and canvas elements
+    // Set up video and canvas elements.
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const processedImage = document.getElementById('processedImage');
@@ -39,49 +39,70 @@
     const audioAlertEl = document.getElementById('audioAlert');
     const context = canvas.getContext('2d');
 
-    // Request video and audio from the user's webcam
+    // Request video and audio from the user's webcam.
     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
         .then(stream => {
             video.srcObject = stream;
             video.play();
 
-            // Set up MediaRecorder for audio with MIME type options
+            // Set up MediaRecorder for audio with 10-second chunks.
             const audioTracks = stream.getAudioTracks();
             if (audioTracks.length > 0) {
                 const audioStream = new MediaStream(audioTracks);
-                let options = { mimeType: 'audio/webm' };
+                let options = { mimeType: 'audio/ogg; codecs=opus' };
                 if (!MediaRecorder.isTypeSupported(options.mimeType)) {
                     console.warn(`${options.mimeType} is not supported, using default MIME type.`);
                     options = {};
                 }
 
                 let mediaRecorder = new MediaRecorder(audioStream, options);
+                let audioCounter = 0;
 
                 mediaRecorder.ondataavailable = function(event) {
                     if (event.data && event.data.size > 0) {
                         let reader = new FileReader();
                         reader.onloadend = function() {
-                            let base64data = reader.result.split(',')[1];
-                            if (audioSocket.readyState === WebSocket.OPEN) {
-                                let msg = JSON.stringify({
-                                    audio_data: base64data,
-                                    sample_rate: 16000,
-                                    sample_width: 2
-                                });
-                                audioSocket.send(msg);
+                            // Get the base64 string (without the data: prefix)
+                            const base64data = reader.result.split(',')[1];
+                            audioCounter++;
+
+                            if (audioCounter % 2 === 0) {
+                                // Even count: send raw audio via HTTP POST.
+                                fetch('/upload_audio/', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                                    body: 'audio=' + encodeURIComponent(reader.result)
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    console.log("Raw audio uploaded:", data);
+                                })
+                                .catch(error => console.error('Error uploading raw audio:', error));
+                            } else {
+                                // Odd count: send audio via WebSocket for processing.
+                                if (audioSocket.readyState === WebSocket.OPEN) {
+                                    let msg = JSON.stringify({
+                                        audio_data: base64data,
+                                        sample_rate: 16000,
+                                        sample_width: 2
+                                    });
+                                    audioSocket.send(msg);
+                                }
                             }
                         };
                         reader.readAsDataURL(event.data);
                     }
                 };
-                mediaRecorder.start(2000);
+
+                // Start recording with a 10-second interval.
+                mediaRecorder.start(10000);
             }
         })
         .catch(err => {
             console.error('Error accessing media devices:', err);
         });
 
-    // Capture frames and send to server for face analysis
+    // Capture video frames every 500ms and send to /process-frame/.
     setInterval(() => {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         let imageData = canvas.toDataURL('image/jpeg');
@@ -103,17 +124,23 @@
         .catch(error => console.error('Error processing frame:', error));
     }, 500);
 
-    // Set up WebSocket for audio processing
-    const audioSocket = new WebSocket('ws://' + window.location.host + '/ws/process_audio/');
+    // Set up WebSocket for audio processing (odd audio chunks).
+    const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const audioSocket = new WebSocket(wsProtocol + "://" + window.location.host + "/ws/process_audio/");
 
     audioSocket.onmessage = function(event) {
         let data = JSON.parse(event.data);
         let texts = data.recognized_texts;
         let violation = data.violation_found;
-
         let transcript = '';
+
         for (let lang in texts) {
-            transcript += lang + ': ' + texts[lang] + '\n';
+            const words = texts[lang].split(/\s+/);
+            words.forEach(word => {
+                console.log(`Recognized (${lang}): ${word}`);
+                transcript += word + ' ';
+            });
+            transcript += '\n';
         }
         audioTranscriptEl.textContent = transcript;
 

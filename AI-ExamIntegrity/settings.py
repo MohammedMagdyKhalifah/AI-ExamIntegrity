@@ -56,6 +56,13 @@ TEMPLATES = [
 WSGI_APPLICATION = 'AI-ExamIntegrity.wsgi.application'
 ASGI_APPLICATION = 'AI-ExamIntegrity.asgi.application'
 
+# Channel layers using an in-memory backend (suitable for development)
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -64,10 +71,13 @@ DATABASES = {
 }
 
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+
+TIME_ZONE = 'Asia/Riyadh'
+USE_TZ = True
+
 USE_I18N = True
 USE_L10N = True
-USE_TZ = True
+
 
 STATIC_URL = '/static/'
 

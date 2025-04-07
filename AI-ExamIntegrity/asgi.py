@@ -1,26 +1,11 @@
-"""
-ASGI config for AI-ExamIntegrity project.
-
-It exposes the ASGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/5.1/howto/deployment/asgi/
-"""
-# AI-ExamIntegrity/asgi.py
-
 import os
-from channels.routing import ProtocolTypeRouter, URLRouter
 from django.core.asgi import get_asgi_application
-from channels.auth import AuthMiddlewareStack
-import integrity_app.routing
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'AI-ExamIntegrity.settings')
+django_asgi_app = get_asgi_application()
 
-application = ProtocolTypeRouter({
-    "http": get_asgi_application(),
-    "websocket": AuthMiddlewareStack(
-        URLRouter(
-            integrity_app.routing.websocket_urlpatterns
-        )
-    ),
-})
+# Import the Channels routing application
+from .routing import application as channels_application
+
+# Set the ASGI application to the Channels routing.
+application = channels_application

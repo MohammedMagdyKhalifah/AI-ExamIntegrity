@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}My Exams{% endblock %}
+
+{% block content %}
+<div class="container w-75">
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-info{% endif %} text-center" role="alert">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+ <!-- Page Title and "Add Exam" Button -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3">My Exams</h1>
+    <a href="#" class="btn btn-primary">Add Exam</a>
+  </div>
+
+  <!-- Ongoing Exams Section -->
+  <h5 class="mb-3">Ongoing Exams:</h5>
+  {% if ongoing_exams %}
+    <table class="table align-middle">
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">Title</th>
+          <th scope="col">Start Time</th>
+          <th scope="col">Status</th>
+          <th scope="col">Duration</th>
+          <th scope="col" class="text-end">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for exam in ongoing_exams %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ exam.title }}</td>
+          <td>{{ exam.start_time|date:"m/d/Y h:i A" }}</td>
+          <td>{{ exam.status|capfirst }}</td>
+          <td>
+            {% if exam.duration %}
+              {{ exam.duration }}
+            {% else %}
+              1h
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <!-- "Start Exam" button -->
+            <a href="{% url 'student_exam_detail' exam_id=exam.exam_id %}" class="btn btn-sm btn-primary">Start Exam</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No ongoing exams.</p>
+  {% endif %}
+
+  <!-- Upcoming Exams Section -->
+  <h5 class="mt-5 mb-3">Upcoming Exams:</h5>
+  {% if upcoming_exams %}
+    <table class="table align-middle">
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">Title</th>
+          <th scope="col">Start Time</th>
+          <th scope="col">Status</th>
+          <th scope="col">Duration</th>
+          <th scope="col" class="text-end">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for exam in upcoming_exams %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ exam.title }}</td>
+          <td>{{ exam.start_time|date:"m/d/Y h:i A" }}</td>
+          <td>{{ exam.status|capfirst }}</td>
+          <td>
+            {% if exam.duration %}
+              {{ exam.duration }}
+            {% else %}
+              1h
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <!-- "View details" button -->
+            <a href="{% url 'student_exam_detail' exam_id=exam.exam_id %}" class="btn btn-sm btn-success">View details</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No upcoming exams.</p>
+  {% endif %}
+</div>
+{% endblock %}

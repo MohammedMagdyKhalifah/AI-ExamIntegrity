@@ -1,0 +1,33 @@
+{% load static %}
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center" href="{% url 'about' %}">
+            <img src="{% static 'accounts/logo.png' %}" alt="AI ExamIntegrity+ Logo" width="30" class="me-2">
+            AI ExamIntegrity+
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                {% if user.is_authenticated %}
+                    {% if user.user_type == 'student' %}
+                        <li class="nav-item"><a class="nav-link" href="{% url 'student_dashboard' %}">Home</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{% url 'student_my_exams' %}">My Exams</a></li>
+                    {% elif user.user_type == 'proctor' %}
+                    <li class="nav-item"><a class="nav-link" href="{% url 'proctor_dashboard' %}">Home</a></li>
+                    {% endif %}
+                {% endif %}
+                <li class="nav-item"><a class="nav-link" href="{% url 'about' %}">About</a></li>
+                <li class="nav-item"><a class="nav-link" href="/contact">Contact</a></li>
+
+                {% if user.is_authenticated %}
+                    <li class="nav-item"><a class="btn btn-danger ms-3" href="{% url 'logout' %}">Logout</a></li>
+                {% else %}
+                    <li class="nav-item"><a class="btn btn-primary ms-3" href="{% url 'login' %}">Login</a></li>
+                    <li class="nav-item"><a class="btn btn-outline-light ms-2" href="{% url 'register' %}">Sign Up</a></li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>

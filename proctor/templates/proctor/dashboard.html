@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Proctor Dashboard{% endblock%}
+{% block content %}
+
+
+
+
+<!-- Dashboard section -->
+<div class="container mt-5">
+    <h2 class="text-center">Proctor Dashboard</h2>
+    <p class="text-center">Welcome, {{ request.user.username }}!</p>
+
+    <div class="text-center my-4">
+        <a href="{% url 'create_exam' %}" class="btn btn-primary btn-lg m-2">Create New Exam</a>
+        <a href="#" class="btn btn-outline-dark btn-lg m-2">View Live Exam Monitoring</a>
+        <a href="#" class="btn btn-outline-secondary btn-lg m-2">Review Paused Exams</a>
+    </div>
+    
+
+    <h3 class="mt-5">Created Exams</h3>
+
+    {% if exams %}
+        <table class="table table-bordered mt-3">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for exam in exams %}
+                    <tr>
+                        <td>{{ exam.title }}</td>
+                        <td>{{ exam.start_time }}</td>
+                        <td>{{ exam.end_time }}</td>
+                        <td>
+                            {% if exam.status == 'scheduled' %}
+                                <span class="badge bg-info">Scheduled</span>
+                            {% elif exam.status == 'ongoing' %}
+                                <span class="badge bg-success">Ongoing</span>
+                            {% elif exam.status == 'completed' %}
+                                <span class="badge bg-secondary">Completed</span>
+                            {% elif exam.status == 'paused' %}
+                                <span class="badge bg-warning text-dark">Paused</span>
+                            {% elif exam.status == 'cancelled' %}
+                                <span class="badge bg-danger">Cancelled</span>
+                            {% else %}
+                                <span class="badge bg-light text-dark">{{ exam.status }}</span>
+                            {% endif %}
+                        </td>
+                        
+                        <td>
+                            <a href="{% url 'edit_exam' exam.exam_id %}" class="btn btn-sm btn-warning">Edit</a>
+                            <form action="{% url 'delete_exam' exam.exam_id %}" method="post" style="display:inline;">
+                                {% csrf_token %}
+                                <button class="btn btn-sm btn-danger">Delete</button>
+                            </form>
+                            <a href="{% url 'invite_students' exam.exam_id %}" class="btn btn-sm btn-info">Invite</a>
+                            <a href="{% url 'manage_questions' exam.exam_id %}" class="btn btn-sm btn-primary">Questions</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="text-muted text-center">You haven't created any exams yet.</p>
+    {% endif %}
+</div>
+
+{% endblock %}

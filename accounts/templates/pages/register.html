@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center vh-100">
+    <div class="card p-4 shadow-lg w-50">
+        <h2 class="text-center mb-4">Register</h2>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-info{% endif %} text-center" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="POST">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label for="first_name" class="form-label">First Name</label>
+                <input type="text" class="form-control" id="first_name" name="first_name" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="last_name" class="form-label">Last Name</label>
+                <input type="text" class="form-control" id="last_name" name="last_name" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" class="form-control" id="username" name="username" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" class="form-control" id="email" name="email" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+            </div>
+
+            <!-- Dropdown to select user type -->
+            <div class="mb-3">
+                <label for="user_type" class="form-label">I am a</label>
+                <select class="form-control" id="user_type" name="user_type">
+                    <option value="student" selected>Student</option>
+                    <option value="proctor">Proctor</option>
+                </select>
+            </div>
+
+            <!-- Student ID field shown only when "Student" is selected -->
+            <div class="mb-3" id="student_id_field">
+                <label for="student_id" class="form-label">Student ID</label>
+                <input type="text" class="form-control" id="student_id" name="student_id" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">Register</button>
+        </form>
+
+        <div class="text-center mt-3">
+            Already have an account? <a href="{% url 'login' %}">Login</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Toggle the display of the student ID field based on user type selection
+    document.getElementById('user_type').addEventListener('change', function() {
+        var studentField = document.getElementById('student_id_field');
+        if (this.value === 'student') {
+            studentField.style.display = 'block';
+            studentField.querySelector('input').required = true;
+        } else {
+            studentField.style.display = 'none';
+            studentField.querySelector('input').required = false;
+        }
+    });
+</script>
+{% endblock %}

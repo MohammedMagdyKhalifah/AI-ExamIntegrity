@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Submit Exam{% endblock %}
+{% block content %}
+<div class="container my-4">
+  <h2>Submit Exam</h2>
+  <p>Are you sure you want to submit your exam? Once submitted, you cannot change your answers.</p>
+  <form method="POST">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Submit Exam</button>
+    <a href="{% url 'exam_question' attempt_id=attempt.attempt_id question_number=1 %}" class="btn btn-secondary">Cancel</a>
+  </form>
+</div>
+{% endblock %}

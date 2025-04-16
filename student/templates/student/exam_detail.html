@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Exam Details{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-info{% endif %} text-center" role="alert">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+  <h1 class="mb-3">{{ exam.title }}</h1>
+  <p>{{ exam.description }}</p>
+  <div class="row">
+    <div class="col-md-6">
+      <p><strong>Start Time:</strong> {{ exam.start_time|date:"M d, Y h:i A" }}</p>
+      <p><strong>End Time:</strong> {{ exam.end_time|date:"M d, Y h:i A" }}</p>
+      {% if exam.duration %}
+        <p><strong>Duration:</strong> {{ exam.duration }}</p>
+      {% endif %}
+      <p><strong>Number of Questions:</strong> {{ question_count }}</p>
+    </div>
+    <div class="col-md-6">
+      <p><strong>Status:</strong> {{ exam.status|capfirst }}</p>
+      {% if exam.grade %}
+        <p><strong>Grade:</strong> {{ exam.grade }}</p>
+      {% endif %}
+      <p><strong>Proctor:</strong> {{ exam.proctor.first_name }} {{ exam.proctor.last_name }}</p>
+    </div>
+  </div>
+  <hr>
+  {% comment %}
+    Check if the current time is greater than or equal to exam.start_time
+    and less than exam.end_time to determine exam availability.
+  {% endcomment %}
+  {% if now and exam.start_time <= now and exam.end_time > now %}
+    <a href="{% url 'start_exam' exam_id=exam.exam_id %}" class="btn btn-success">Start Exam</a>
+  {% else %}
+    <p class="text-muted">This exam is not currently available.</p>
+  {% endif %}
+</div>
+<p>Current time: {{ now|date:"M d, Y h:i A" }}</p>
+<p>Exam start time: {{ exam.start_time|date:"M d, Y h:i A" }}</p>
+<p>Exam end time: {{ exam.end_time|date:"M d, Y h:i A" }}</p>
+{% endblock %}
+

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Exam Interface{% endblock %}
+{% block content %}
+<div class="container my-4">
+  <h1>{{ exam.title }}</h1>
+  <p>{{ exam.description }}</p>
+  <hr>
+  <div id="questions">
+    {% for question in questions %}
+      <div class="question mb-4" data-question-id="{{ question.question_id }}">
+        <p><strong>Question {{ forloop.counter }}:</strong> {{ question.question_text }}</p>
+        {% if question.question_media %}
+          <img src="{{ question.question_media.url }}" alt="Media" class="img-fluid mb-2">
+        {% endif %}
+        {% if question.question_type == "MCQ" %}
+          <div class="form-check">
+            <input class="form-check-input answer-input" type="radio" name="answer_{{ question.question_id }}" value="{{ question.choiceA }}" id="q{{ question.question_id }}_a">
+            <label class="form-check-label" for="q{{ question.question_id }}_a">{{ question.choiceA }}</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input answer-input" type="radio" name="answer_{{ question.question_id }}" value="{{ question.choiceB }}" id="q{{ question.question_id }}_b">
+            <label class="form-check-label" for="q{{ question.question_id }}_b">{{ question.choiceB }}</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input answer-input" type="radio" name="answer_{{ question.question_id }}" value="{{ question.choiceC }}" id="q{{ question.question_id }}_c">
+            <label class="form-check-label" for="q{{ question.question_id }}_c">{{ question.choiceC }}</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input answer-input" type="radio" name="answer_{{ question.question_id }}" value="{{ question.choiceD }}" id="q{{ question.question_id }}_d">
+            <label class="form-check-label" for="q{{ question.question_id }}_d">{{ question.choiceD }}</label>
+          </div>
+        {% else %}
+          <input type="text" class="form-control answer-input" placeholder="Your answer" name="answer_{{ question.question_id }}">
+        {% endif %}
+        <small class="feedback text-success"></small>
+      </div>
+    {% endfor %}
+  </div>
+  <hr>
+  <button id="submitExamBtn" class="btn btn-primary">Submit Exam</button>
+</div>
+
+<script>
+  // Function to get CSRF token from cookie (if not already available)
+  function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+              const cookie = cookies[i].trim();
+              if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                  cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                  break;
+              }
+          }
+      }
+      return cookieValue;
+  }
+  const csrfToken = getCookie('csrftoken');
+
+  // Attach event listeners to all answer inputs
+  document.querySelectorAll('.answer-input').forEach(function(input) {
+      input.addEventListener('change', function() {
+          var questionDiv = this.closest('.question');
+          var questionId = questionDiv.getAttribute('data-question-id');
+          var answerValue;
+          if (this.type === "radio") {
+              var selected = document.querySelector('input[name="answer_' + questionId + '"]:checked');
+              if(selected) {
+                  answerValue = selected.value;
+              }
+          } else {
+              answerValue = this.value;
+          }
+          var data = {
+              'attempt_id': "{{ attempt.attempt_id }}",
+              'question_id': questionId,
+              'answer_text': answerValue
+          };
+          fetch("{% url 'submit_answer' %}", {
+              method: "POST",
+              headers: {
+                  "Content-Type": "application/json",
+                  "X-CSRFToken": csrfToken
+              },
+              body: JSON.stringify(data)
+          })
+          .then(response => response.json())
+          .then(data => {
+              if(data.success){
+                  questionDiv.querySelector('.feedback').textContent = "Grade awarded: " + data.grade_awarded;
+              } else {
+                  questionDiv.querySelector('.feedback').textContent = "Error saving answer.";
+              }
+          })
+          .catch(error => {
+              console.error("Error:", error);
+              questionDiv.querySelector('.feedback').textContent = "Error saving answer.";
+          });
+      });
+  });
+
+  // Handler for exam submission button
+  document.getElementById("submitExamBtn").addEventListener("click", function() {
+      if(confirm("Are you sure you want to submit the exam?")){
+          window.location.href = "{% url 'exam_submit' attempt_id=attempt.attempt_id %}";
+      }
+  });
+</script>
+{% endblock %}

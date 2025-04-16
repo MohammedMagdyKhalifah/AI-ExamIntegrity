@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}AI Exam Integrity - Monitoring Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center mb-4">AI Exam Integrity Monitoring Dashboard</h1>
+
+    <!-- Video Panel -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow p-3">
+                <h2>Face Monitor</h2>
+                <!-- Video is shown from the webcam -->
+                <video id="video" width="100%" height="auto" autoplay muted class="border rounded"></video>
+                <!-- A hidden canvas is used to capture frames -->
+                <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
+                <!-- Processed frame can be shown here if needed -->
+                <img id="processedImage" src="" alt="Processed Frame" class="img-fluid mt-2 rounded">
+                <div id="faceStatus" class="mt-2">Status: Normal Behavior</div>
+            </div>
+        </div>
+
+        <!-- Audio Recorder Panel -->
+        <div class="col-md-6">
+            <div class="card shadow p-3">
+                <h2>Audio Recorder</h2>
+                <div class="text-center">
+                    <button id="startAudioBtn" class="btn btn-primary">Start Recording Audio</button>
+                    <button id="stopAudioBtn" class="btn btn-danger" disabled>Stop Recording Audio</button>
+                </div>
+                <div class="mt-3">
+                    <h4>Speech Feedback:</h4>
+                    <p id="feedback" class="border rounded p-3"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Global variables
+    let videoStream = null;
+    let audioMediaRecorder = null;
+    let recordedAudioChunks = [];
+
+    // Get references to DOM elements
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const processedImage = document.getElementById('processedImage');
+    const faceStatusEl = document.getElementById('faceStatus');
+    const startAudioBtn = document.getElementById('startAudioBtn');
+    const stopAudioBtn = document.getElementById('stopAudioBtn');
+    const feedbackEl = document.getElementById('feedback');
+
+    const context = canvas.getContext('2d');
+
+    // Request both video and audio from user's webcam.
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        .then(stream => {
+            console.log("Media access granted.");
+            videoStream = stream;
+            video.srcObject = stream;
+            video.play();
+
+            // Start video frame capturing every 500ms.
+            setInterval(() => {
+                try {
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    let imageData = canvas.toDataURL('image/jpeg');
+                    console.log("Captured a video frame.");
+
+                    fetch('/process-frame/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: 'image=' + encodeURIComponent(imageData)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log("Received response from /process-frame/: " + JSON.stringify(data));
+                        if (data.processed_image) {
+                            processedImage.src = data.processed_image;
+                            console.log("Updated processed image.");
+                        }
+                        if (data.face_status) {
+                            faceStatusEl.textContent = 'Status: ' + data.face_status;
+                            console.log("Updated face status: " + data.face_status);
+                        }
+                    })
+                    .catch(error => console.error('Error processing frame: ' + error));
+                } catch (e) {
+                    console.error("Exception in frame capture: " + e);
+                }
+            }, 500);
+        })
+        .catch(err => {
+            console.error('Error accessing media devices: ' + err);
+        });
+
+    // Audio Recording functions using a separate audio stream (audio tracks only)
+    startAudioBtn.addEventListener('click', () => {
+        if (!videoStream) {
+            console.error("Video stream not available.");
+            return;
+        }
+        // Create a new MediaStream for audio from the existing stream.
+        let audioStream = new MediaStream(videoStream.getAudioTracks());
+        recordedAudioChunks = [];
+        let options = { mimeType: 'audio/ogg; codecs=opus' };
+        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+            console.warn(`${options.mimeType} is not supported, falling back to default.`);
+            options = {};
+        }
+        audioMediaRecorder = new MediaRecorder(audioStream, options);
+
+        audioMediaRecorder.ondataavailable = event => {
+            if (event.data && event.data.size > 0) {
+                recordedAudioChunks.push(event.data);
+                console.log("Audio chunk recorded.");
+            }
+        };
+
+        audioMediaRecorder.onstop = () => {
+            // Combine all recorded chunks into a Blob.
+            const audioBlob = new Blob(recordedAudioChunks, { type: 'audio/webm' });
+            console.log("Audio recording stopped. Blob size: " + audioBlob.size);
+            // Send the Blob to the backend for processing.
+            fetch('/process_audio/', {
+                method: 'POST',
+                headers: { "Content-Type": "audio/webm" },
+                body: audioBlob
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "success") {
+                    feedbackEl.textContent = data.feedback;
+                    console.log("Received speech feedback: " + data.feedback);
+                } else {
+                    feedbackEl.textContent = "Error: " + data.feedback;
+                    console.error("Error in speech processing: " + data.feedback);
+                }
+            })
+            .catch(err => {
+                console.error("Error sending audio:", err);
+                feedbackEl.textContent = "Error processing audio.";
+            });
+        };
+
+        audioMediaRecorder.start();
+        console.log("Audio MediaRecorder started.");
+        startAudioBtn.disabled = true;
+        stopAudioBtn.disabled = false;
+    });
+
+    stopAudioBtn.addEventListener('click', () => {
+        if (audioMediaRecorder && audioMediaRecorder.state !== 'inactive') {
+            audioMediaRecorder.stop();
+            console.log("Audio MediaRecorder stopped.");
+            startAudioBtn.disabled = false;
+            stopAudioBtn.disabled = true;
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5">
+    <h2 class="text-center">
+        {% if form.instance.pk %}Edit Exam{% else %}Create New Exam{% endif %}
+    </h2>
+   
+
+    <form method="POST" class="card p-4 shadow-sm mt-4">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button class="btn btn-success">
+            {% if form.instance.pk %}Update{% else %}Create{% endif %}
+        </button>
+        <a href="{% url 'proctor_dashboard' %}" class="btn btn-secondary ms-2">Cancel</a>
+    </form>
+</div>
+{% endblock %}

@@ -1,167 +1,209 @@
 import base64
 import os
 import datetime
-from django.conf import settings
-from pydub import AudioSegment
+import logging
+from concurrent.futures import ThreadPoolExecutor
 
-import cv2
-import numpy as np
+from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render
 
-import logging
-from accounts.decorators import student_required, proctor_required
+import cv2
+import numpy as np
+import torch
+from ultralytics import YOLO
+from pydub import AudioSegment
 import speech_recognition as sr
 
+from accounts.decorators import student_required, proctor_required
 from .monitoring import FaceMonitor
 
 logger = logging.getLogger(__name__)
+
+# Single FaceMonitor instance
+face_monitor = FaceMonitor()
+
+# Pick best device and (for CUDA) set it
+if torch.cuda.is_available():
+    device = 'cuda:0'
+    torch.cuda.set_device(0)
+elif torch.backends.mps.is_available():
+    device = 'mps'
+else:
+    device = 'cpu'
+
+# Load YOLOv8 model once, then move it to our device
+YOLO_WEIGHTS = settings.BASE_DIR / 'models' / 'best.pt'
+object_detector = YOLO(YOLO_WEIGHTS)  # no device= here!
+object_detector.to(device)            # now it's on GPU/MPS/CPU
 
 
 @student_required
 def index(request):
     return render(request, 'integrity_app/student_dashboard.html')
 
-# Create a single instance of FaceMonitor for processing frames
-face_monitor = FaceMonitor()
 
 @student_required
 @csrf_exempt
 def process_frame(request):
-    if request.method == 'POST':
-        image_data = request.POST.get('image')
-        if image_data:
-            # image_data is expected as data URL: "data:image/jpeg;base64,..."
-            header, encoded = image_data.split(',', 1)
-            img_bytes = base64.b64decode(encoded)
-            nparr = np.frombuffer(img_bytes, np.uint8)
-            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-            processed_img = face_monitor.analyze_face(img)
-            retval, buffer = cv2.imencode('.jpg', processed_img)
-            jpg_as_text = base64.b64encode(buffer).decode('utf-8')
-            return JsonResponse({
-                'processed_image': 'data:image/jpeg;base64,' + jpg_as_text,
-                'face_status': face_monitor.current_status,
-            })
-    return JsonResponse({'error': 'Invalid request'}, status=400)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request'}, status=400)
+
+    # Decode incoming base64 frame
+    image_data = request.POST.get('image', '')
+    try:
+        _, encoded = image_data.split(',', 1)
+        frame = cv2.imdecode(
+            np.frombuffer(base64.b64decode(encoded), np.uint8),
+            cv2.IMREAD_COLOR
+        )
+    except Exception as e:
+        logger.error("Bad image data: %s", e)
+        return JsonResponse({'error': 'Bad image data'}, status=400)
+
+    # Define the two tasks
+    def face_task():
+        return face_monitor.analyze_face(frame.copy())
+
+    def detect_task():
+        # You can also pass device here if you like:
+        # return object_detector(frame.copy(), device=device)[0]
+        return object_detector(frame.copy())[0]
+
+    # Run them in parallel
+    with ThreadPoolExecutor(max_workers=2) as exe:
+        future_face = exe.submit(face_task)
+        future_det  = exe.submit(detect_task)
+        face_img    = future_face.result()
+        det_result  = future_det.result()
+
+    # Build detection list
+    detections = []
+    names = object_detector.names
+    for box, cls, conf in zip(
+        det_result.boxes.xyxy.tolist(),
+        det_result.boxes.cls.tolist(),
+        det_result.boxes.conf.tolist()
+    ):
+        x1, y1, x2, y2 = map(int, box)
+        detections.append({
+            'box':       [x1, y1, x2, y2],
+            'class_id':  int(cls),
+            'class_name': names[int(cls)],
+            'confidence': float(conf),
+        })
+
+    # Encode face-monitor output
+    _, buf_face = cv2.imencode('.jpg', face_img)
+    face_b64    = base64.b64encode(buf_face).decode('utf-8')
+    face_url    = 'data:image/jpeg;base64,' + face_b64
+
+    # Annotate original frame for objects
+    obj_img = frame.copy()
+    for d in detections:
+        x1, y1, x2, y2 = d['box']
+        cv2.rectangle(obj_img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        cv2.putText(
+            obj_img,
+            f"{d['class_name']}:{d['confidence']:.2f}",
+            (x1, y1 - 5),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.5, (0, 255, 0), 1
+        )
+
+    _, buf_obj = cv2.imencode('.jpg', obj_img)
+    obj_b64    = base64.b64encode(buf_obj).decode('utf-8')
+    obj_url    = 'data:image/jpeg;base64,' + obj_b64
+
+    return JsonResponse({
+        'face_image':   face_url,
+        'face_status':  face_monitor.current_status,
+        'object_image': obj_url,
+        'detections':   detections,
+    })
+
 
 @student_required
 @csrf_exempt
 def process_audio(request):
-    """
-    Receives binary audio data (expected as WebM from the browser),
-    saves it to disk, converts it to MP3 (with autodetection and fallback),
-    removes the original WebM file, converts the MP3 to a temporary WAV file for
-    speech recognition, processes the audio in both English and Arabic,
-    and returns feedback with the recognized texts.
-    """
-    if request.method == 'POST':
-        # Save the incoming audio data as a file.
-        audio_data = request.body
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        webm_file_name = f"recording_{timestamp}.webm"
-        webm_file_path = os.path.join(settings.MEDIA_ROOT, webm_file_name)
-        os.makedirs(os.path.dirname(webm_file_path), exist_ok=True)
-        try:
-            with open(webm_file_path, "wb") as f:
-                f.write(audio_data)
-            logger.info("Audio saved as WebM at: %s", webm_file_path)
-        except Exception as e:
-            logger.error("Error saving audio file: %s", e)
-            return JsonResponse({'status': 'failure', 'feedback': "Failed to save recording."})
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
 
-        # Convert the file to MP3.
-        try:
-            # First attempt: let pydub autodetect the format.
-            audio = AudioSegment.from_file(webm_file_path)
-        except Exception as e_autodetect:
-            logger.error("Autodetection conversion failed: %s", e_autodetect)
+    # Save WebM
+    audio_data = request.body
+    ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    webm_fp = os.path.join(settings.MEDIA_ROOT, f"recording_{ts}.webm")
+    os.makedirs(os.path.dirname(webm_fp), exist_ok=True)
+    try:
+        with open(webm_fp, "wb") as f:
+            f.write(audio_data)
+        logger.info("Saved WebM: %s", webm_fp)
+    except Exception as e:
+        logger.error("Error saving WebM: %s", e)
+        return JsonResponse({'status':'failure','feedback':"Failed to save recording."})
+
+    # Convert to MP3 (with fallbacks)
+    try:
+        audio = AudioSegment.from_file(webm_fp)
+    except Exception as e1:
+        logger.warning("Autodetect failed: %s", e1)
+        for fmt in ("ogg","opus"):
             try:
-                # Second attempt: try assuming an Ogg container.
-                audio = AudioSegment.from_file(webm_file_path, format="ogg")
-            except Exception as e_ogg:
-                logger.error("Conversion with 'ogg' format failed: %s", e_ogg)
-                try:
-                    # Third attempt: try using "opus" as the container.
-                    audio = AudioSegment.from_file(webm_file_path, format="opus")
-                except Exception as e_opus:
-                    logger.error("Conversion with 'opus' format failed: %s", e_opus)
-                    return JsonResponse({
-                        'status': 'failure',
-                        'feedback': "Recording saved but failed to convert to MP3."
-                    })
+                audio = AudioSegment.from_file(webm_fp, format=fmt)
+                break
+            except Exception as e2:
+                logger.warning("%s failed: %s", fmt, e2)
+        else:
+            return JsonResponse({'status':'failure','feedback':"Failed to convert to MP3."})
 
-        mp3_file_name = f"recording_{timestamp}.mp3"
-        mp3_file_path = os.path.join(settings.MEDIA_ROOT, mp3_file_name)
-        try:
-            audio.export(mp3_file_path, format="mp3")
-            logger.info("Audio converted and saved as MP3 at: %s", mp3_file_path)
-        except Exception as e_export:
-            logger.error("Error exporting MP3: %s", e_export)
-            return JsonResponse({
-                'status': 'failure',
-                'feedback': "Recording saved but failed to export MP3."
-            })
+    mp3_fp = os.path.join(settings.MEDIA_ROOT, f"recording_{ts}.mp3")
+    try:
+        audio.export(mp3_fp, format="mp3")
+        logger.info("Exported MP3: %s", mp3_fp)
+    except Exception as e:
+        logger.error("Error exporting MP3: %s", e)
+        return JsonResponse({'status':'failure','feedback':"Failed to export MP3."})
 
-        # Remove the original file.
-        try:
-            os.remove(webm_file_path)
-            logger.info("Removed original file: %s", webm_file_path)
-        except Exception as e_rm:
-            logger.warning("Could not remove original file: %s", e_rm)
+    # Cleanup WebM
+    try: os.remove(webm_fp)
+    except: pass
 
-        # Convert the MP3 file to a temporary WAV file for speech recognition.
-        wav_file_name = f"recording_{timestamp}.wav"
-        wav_file_path = os.path.join(settings.MEDIA_ROOT, wav_file_name)
-        try:
-            mp3_audio = AudioSegment.from_file(mp3_file_path, format="mp3")
-            mp3_audio.export(wav_file_path, format="wav")
-            logger.info("Converted MP3 to temporary WAV at: %s", wav_file_path)
-        except Exception as e_wav:
-            logger.error("Error converting MP3 to WAV: %s", e_wav)
-            return JsonResponse({
-                'status': 'failure',
-                'feedback': "Recording saved but failed to convert MP3 to WAV for recognition."
-            })
+    # MP3 → WAV
+    wav_fp = os.path.join(settings.MEDIA_ROOT, f"recording_{ts}.wav")
+    try:
+        AudioSegment.from_file(mp3_fp, format="mp3").export(wav_fp, format="wav")
+        logger.info("Exported WAV: %s", wav_fp)
+    except Exception as e:
+        logger.error("Error exporting WAV: %s", e)
+        return JsonResponse({'status':'failure','feedback':"Failed to convert to WAV."})
 
-        # Run speech recognition on the WAV file.
-        rec = sr.Recognizer()
-        recognized_text_en = ""
-        recognized_text_ar = ""
-        try:
-            with sr.AudioFile(wav_file_path) as source:
-                audio_file = rec.record(source)
-            recognized_text_en = rec.recognize_google(audio_file, language="en")
-            recognized_text_ar = rec.recognize_google(audio_file, language="ar")
-            logger.info("Speech recognition succeeded: English: %s, Arabic: %s", recognized_text_en, recognized_text_ar)
-        except sr.UnknownValueError:
-            recognized_text_en = "Could not understand the audio in English."
-            recognized_text_ar = "Could not understand the audio in Arabic."
-            logger.warning("Speech recognition could not understand the audio.")
-        except sr.RequestError as e_req:
-            recognized_text_en = "Could not request results from Google for English."
-            recognized_text_ar = "Could not request results from Google for Arabic."
-            logger.error("Speech recognition request error: %s", e_req)
-        except Exception as e_recog:
-            logger.error("General error during speech recognition: %s", e_recog)
-            return JsonResponse({
-                'status': 'failure',
-                'feedback': "Error during speech recognition."
-            })
+    # Speech recognition
+    rec = sr.Recognizer()
+    try:
+        with sr.AudioFile(wav_fp) as src:
+            audio_file = rec.record(src)
+        text_en = rec.recognize_google(audio_file, language="en")
+        text_ar = rec.recognize_google(audio_file, language="ar")
+        logger.info("EN: %s | AR: %s", text_en, text_ar)
+    except sr.UnknownValueError:
+        text_en = "Could not understand English."
+        text_ar = "Could not understand Arabic."
+    except sr.RequestError as e:
+        text_en = "Google API error (EN)."
+        text_ar = "Google API error (AR)."
+        logger.error("Speech API error: %s", e)
+    except Exception as e:
+        logger.error("General SR error: %s", e)
+        return JsonResponse({'status':'failure','feedback':"Error during speech recognition."})
 
-        # Remove the temporary WAV file.
-        try:
-            os.remove(wav_file_path)
-            logger.info("Removed temporary WAV file: %s", wav_file_path)
-        except Exception as e_rm_wav:
-            logger.warning("Could not remove temporary WAV file: %s", e_rm_wav)
+    # Cleanup WAV
+    try: os.remove(wav_fp)
+    except: pass
 
-        feedback = (
-            f"Recording saved successfully! (MP3: {mp3_file_name})\n\n"
-            f"English: {recognized_text_en}\n\n"
-            f"Arabic: {recognized_text_ar}"
-        )
-        return JsonResponse({'status': 'success', 'feedback': feedback})
-
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
+    feedback = (
+        f"Recording saved! (MP3: recording_{ts}.mp3)\n\n"
+        f"English: {text_en}\n\n"
+        f"Arabic: {text_ar}"
+    )
+    return JsonResponse({'status':'success','feedback': feedback})

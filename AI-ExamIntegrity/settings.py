@@ -7,8 +7,7 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
-GOOGLE_APPLICATION_CREDENTIALS = BASE_DIR / 'credentials' / 'aiexamintegrity-d246b4b4eebb.json'
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(GOOGLE_APPLICATION_CREDENTIALS)
+
 
 SECRET_KEY = 'your-secret-key-here'
 DEBUG = True
